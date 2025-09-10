@@ -13,21 +13,49 @@ personas.get('/', async (_, res) => {
   res.json(resultado)
 })
 
-// buscar persona
+// Buscar persona por _id o por cédula
 personas.get('/:id', async (req, res) => {
-  const { id: _id } = req.params
+  const { id } = req.params
 
-  if (!ObjectId.isValid(_id)) {
-    return res.json({ error: ' El id ingresado no es valido' })
+  try {
+    // Declaramos la variable que va a guardar el resultado
+    // Puede ser un Usuario si se encuentra en la base de datos,
+    // o null si no existe ningún documento con esos criterios.
+    let resultado: Usuario | null = null
+
+    // Caso 1: si el id recibido es un ObjectId válido
+    if (ObjectId.isValid(id)) {
+      // findOne devuelve Usuario | null → hay que tiparlo así
+      resultado = await ColUsuarios.findOne({ _id: new ObjectId(id) }) as Usuario | null
+    } else {
+      // Caso 2: intentar parsear el id como un número (cédula)
+      const cedula = parseInt(id, 10)
+
+      // Si no es número → error 400
+      if (Number.isNaN(cedula)) {
+        return res.status(400).json({ error: 'El parámetro debe ser un ObjectId válido o un número de cédula' })
+      }
+
+      // Validamos longitud de la cédula (ejemplo: entre 5 y 10 dígitos)
+      if (cedula <= 0 || cedula.toString().length < 5 || cedula.toString().length > 10) {
+        return res.status(400).json({ error: 'La cédula debe ser un número positivo de entre 5 y 10 dígitos' })
+      }
+
+      // findOne devuelve Usuario | null → lo volvemos a tipar igual
+      resultado = await ColUsuarios.findOne({ cedula }) as Usuario | null
+    }
+
+    // Si no encontró nada (resultado === null), respondemos 404
+    if (resultado == null) {
+      return res.status(404).json({ error: 'Usuario no encontrado' })
+    }
+
+    // ✅ Caso exitoso: retornamos el usuario con _id convertido a string
+    res.json({ ...resultado, _id: resultado._id.toString() })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
   }
-
-  const resultado = await ColUsuarios.findOne({ _id: new ObjectId(_id) }) as Usuario
-
-  if (resultado == null) {
-    return res.status(404).json({ error: 'Paciente no encontrado' })
-  }
-
-  res.json(resultado)
 })
 
 personas.post('/', async (req, res) => {

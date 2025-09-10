@@ -5,6 +5,7 @@ import { Collection, Db, MongoClient } from 'mongodb'
 import usuarios from './routes/usuarios'
 import vacunas from './routes/vacunas'
 import { Usuario, Vacuna } from './types'
+import login from './routes/logins'
 
 dotenv.config()
 
@@ -19,6 +20,7 @@ app.use(cors())
 app.use(json())
 app.use('/api/usuarios', usuarios)
 app.use('/api/vacunas', vacunas)
+app.use('/api/login', login)
 
 const PORT = Number(process.env.PORT ?? 3000)
 
