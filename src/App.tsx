@@ -1,35 +1,61 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+// Importamos las herramientas de React Router
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 
+// Importamos los componentes/páginas de la aplicación
+import Login from "./Componentes/Login";
+import RegisterForm from "./Componentes/RegisterForm";
+// import Home from "./Home";
+import Auth from "./Componentes/Authori";
+import Home from "./Componentes/Home";
+import NotFound from "./Componentes/NotFound";
+// import { set } from "react-hook-form";
+import { useState } from "react";
+
+// Componente principal de la aplicación
 function App() {
-  const [count, setCount] = useState(0)
+
+  const [login,setLogin] =useState<boolean>(false);
+
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    // Contenedor principal: pantalla completa, centrado con TailwindCSS
+    <div className="h-screen flex justify-center items-center">
+      {/* BrowserRouter habilita la navegación con rutas */}
+      {/* basename="/WNA-EPS" indica que todas las rutas estarán bajo esa carpeta */}
+      <BrowserRouter basename="/WNA-EPS">
+        {/* Routes agrupa todas las rutas de la aplicación */}
+        <Routes>
+          <Route path="/" element={<Home/>} />
+          <Route path="/auth" element={<Auth />}>
+          {/* <Route index element={<Login puedoEntrar={setLogin} />} /> */}
+            <Route index element={<Login puedoEntrar={setLogin} />} />
+            <Route path="login" element={<Login puedoEntrar={setLogin} />} />
+            <Route path="register" element={<RegisterForm />} />
+          </Route>
+          {
+            login &&
+            <Route path="/home" element={<p>Hola walter</p>} />
+          }
+          <Route path="*" element={<NotFound/>} />
+
+          {/* Ruta raíz "/" -> Muestra el componente Login */}
+          {/* <Route path="/" element={<Login />} /> */}
+
+          {/* Ruta "/login" -> También muestra Login */}
+          {/* <Route path="/login" element={<Login />} /> */}
+
+          {/* Ruta "/register" -> Muestra el formulario de registro */}
+          {/* <Route path="/register" element={<RegisterForm />} /> */}
+
+          {/* Ruta "/home" -> Muestra la página principal Home */}
+          {/* <Route path="/home" element={<Home />} /> */}
+
+          {/* Ruta comodín "*" -> Para cualquier otra URL muestra un error 404 */}
+        </Routes>
+      </BrowserRouter>
+    </div>
+  );
 }
 
-export default App
+// Exportamos App para usarla en main.tsx/index.tsx
+export default App;
