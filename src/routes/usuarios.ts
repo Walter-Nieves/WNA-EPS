@@ -1,8 +1,13 @@
 import { Router } from 'express'
 import { ObjectId } from 'mongodb'
+// esto se descarga para manejar archivos en las peticiones,para subir imagenes que pesan demasiado
+import bcrypt from 'bcrypt'
+import multer from 'multer'
 import { ColUsuarios } from '../index'
 import { Usuario } from '../types'
-import { cedulaEsValida, validarCedula, validarClave, validarClavesActualizacion, validarCuerpo, validarCuerpoActualizacion, validarFoto, validarNombreApellido, validarObjectId, validarTelefono } from '../utilidades/validaciones'
+import { cedulaEsValida, resError, validarCedula, validarClave, validarClavesActualizacion, validarCuerpo, validarCuerpoActualizacion, validarFoto, validarNombreApellido, validarObjectId, validarTelefono } from '../utilidades/validaciones'
+
+const subir = multer({ limits: { fileSize: 15 * 1024 * 1024 } }) // 15 MB
 
 const personas = Router()
 
@@ -60,7 +65,7 @@ personas.get('/:id', async (req, res) => {
   }
 })
 
-personas.post('/', async (req, res) => {
+personas.post('/', subir.single('foto'), async (req, res) => {
   // const body = req.body
   try {
     validarCuerpo(req.body, false)
@@ -71,11 +76,15 @@ personas.post('/', async (req, res) => {
     const body = req.body
 
     const nombreCompleto = validarNombreApellido(body.nombre, body.apellido)
-    const foto = validarFoto(body.foto)
+    const foto = validarFoto(req.file)
     const clave = validarClave(body.clave)
     const telefono = validarTelefono(body.telefono)
-    const cedula = await validarCedula(body, false)
+    const cedula = await validarCedula(body.cedula, false) // false = no debe existir
     const _id = new ObjectId()
+    const sal = await bcrypt.genSaltSync(12)// generar sal(12) significa que se aplicarán 2^12 rondas de procesamiento para generar la sal.
+    // const claveHash = await bcrypt.hash(clave, 12) si hay 2 usuarios con la misma clave, genera el mismo hash
+    const claveHash = await bcrypt.hash(clave, sal)// si hay 2 usuarios con la misma clave, genera diferente hash porque tiene diferente la sal
+
     const nuevoUsuario: Usuario = {
       _id,
       nombre: nombreCompleto.nombre,
@@ -83,7 +92,7 @@ personas.post('/', async (req, res) => {
       foto,
       cedula,
       telefono,
-      clave,
+      clave: claveHash,
       vacunas: []
     }
     const resultado = await ColUsuarios.insertOne(nuevoUsuario)
@@ -99,24 +108,38 @@ personas.post('/', async (req, res) => {
 })
 
 // actualizar persona (PUT)
-personas.put('/', async (req, res) => {
+personas.put('/:id', async (req, res) => {
   try {
     // --- validar que el cuerpo sea un objeto válido ---
     validarCuerpoActualizacion(req.body)
+    // verificar parametros
+    const { id } = req.params
     const body = req.body
 
     // --- determinar si se actualizará por _id o por cédula ---
-    let usuarioExistente: Usuario | null = null
-    if (body._id !== undefined && body._id !== null) {
-      const id = validarObjectId(body._id)
-      usuarioExistente = await ColUsuarios.findOne({ _id: id })
-    } else if (body.cedula !== undefined && body.cedula !== null) {
-      const cedula = await validarCedula(body, true) // true = debe existir
-      usuarioExistente = await ColUsuarios.findOne({ cedula })
+    let posibleUsuario: Usuario | null = null
+    if (ObjectId.isValid(id)) {
+      posibleUsuario = await ColUsuarios.findOne({ _id: new ObjectId(id) }) as Usuario
+    } else {
+      const cedula = await validarCedula(id, true) // true = debe existir
+      posibleUsuario = await ColUsuarios.findOne({ cedula }) as Usuario
     }
 
-    if (usuarioExistente == null) {
+    if (posibleUsuario == null) {
       return res.status(404).json({ error: 'Usuario no encontrado' })
+    }
+    // verificar cedula que proviene del cuerpo
+    const cedula = await validarCedula(body.cedula, true)
+    // si todo esta ok, verificar que la cedula ingresada es igual a la del usuario encontrado
+    if (ObjectId.isValid(id)) {
+      const posibleOtroUsuario = await ColUsuarios.findOne({ _id: new ObjectId(id), cedula }) as Usuario
+      if (posibleOtroUsuario == null) {
+        resError(400, 'La cédula ya está registrada en otro usuario')
+      }
+    } else {
+      if (posibleUsuario.cedula !== cedula) {
+        resError(400, 'La cédula ya está registrada en otro usuario')
+      }
     }
 
     // --- validar campos a modificar ---
@@ -130,11 +153,9 @@ personas.put('/', async (req, res) => {
 
     actualizaciones.telefono = validarTelefono(body.telefono)
 
-    actualizaciones.cedula = await validarCedula(body, false) // false = no debe existir
-
     if (body.claveVieja !== undefined && body.claveNueva !== undefined) {
       const { claveVieja, claveNueva } = validarClavesActualizacion(body.claveVieja, body.claveNueva)
-      if (usuarioExistente.clave !== claveVieja) {
+      if (posibleUsuario.clave !== claveVieja) {
         return res.status(400).json({ error: 'La clave vieja no coincide con la registrada' })
       }
       actualizaciones.clave = claveNueva
@@ -148,7 +169,7 @@ personas.put('/', async (req, res) => {
 
     // --- actualizar en la DB ---
     const resultado = await ColUsuarios.updateOne(
-      { _id: usuarioExistente._id }, // filtro: cual documento se va actualizar
+      { _id: posibleUsuario._id }, // filtro: cual documento se va actualizar
       { $set: actualizaciones } // $set es un operador de MongoDB que sirve para actualizar solo los campos indicados dentro de un documento.
       // No reemplaza todo el documento, sino que pone o modifica solo las claves especificadas.
     )
@@ -166,7 +187,7 @@ personas.put('/', async (req, res) => {
       return res.status(200).json({ error: 'No hubo actualizacion para el usuario' })
     }
 
-    return res.json({ ...usuarioExistente, ...actualizaciones }) // copia el usuario original y sobrescribe sus campos con los nuevos valores actualizados.
+    return res.json({ ...posibleUsuario, ...actualizaciones }) // copia el usuario original y sobrescribe sus campos con los nuevos valores actualizados.
   } catch (error) {
     const e = error as Error
     if (e.message.startsWith('{')) {

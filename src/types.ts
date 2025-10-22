@@ -31,7 +31,7 @@ export interface Usuario {
   _id: ObjectId
   nombre: string
   apellido: string
-  foto: string
+  foto: File
   cedula: number
   telefono: number
   clave: string

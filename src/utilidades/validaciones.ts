@@ -120,24 +120,25 @@ export function validarNombreApellido (nombre: unknown, apellido: unknown): { no
   return nombreCompleto
 }
 
-export function validarFoto (foto: unknown): string | never {
-  if (typeof foto !== 'string') {
-    resError(400, 'La foto debe ser un string')
+export function validarFoto (foto: unknown): File | never {
+  if (foto == null) {
+    resError(400, 'Falta la foto en el cuerpo de la solicitud')
   }
+  return foto as File
 
-  const limpio = sanitizarString(foto)
+  // const limpio = sanitizarString(foto)
 
-  if (limpio === '') {
-    resError(400, 'La foto no puede estar vacía')
-  }
+  // if (limpio === '') {
+  //   resError(400, 'La foto no puede estar vacía')
+  // }
 
-  // validar que sea URL válida y que termine en una extensión permitida
-  const regex = /^(https?:\/\/.*\.(jpg|jpeg|png|gif|avif|webp|bmp))$/i
-  if (!regex.test(limpio)) {
-    resError(400, 'La foto debe ser una URL válida con extensión de imagen')
-  }
+  // // validar que sea URL válida y que termine en una extensión permitida
+  // const regex = /^(https?:\/\/.*\.(jpg|jpeg|png|gif|avif|webp|bmp))$/i
+  // if (!regex.test(limpio)) {
+  //   resError(400, 'La foto debe ser una URL válida con extensión de imagen')
+  // }
 
-  return limpio
+  // return limpio
 }
 
 export function validarClave (clave: unknown): string | never {
@@ -159,52 +160,51 @@ export function validarClave (clave: unknown): string | never {
 }
 
 export function validarTelefono (telefono: unknown): number | never {
-  if (typeof telefono !== 'number' || isNaN(telefono)) {
-    resError(400, 'El teléfono debe ser un número')
+  if (telefono == null) {
+    resError(400, 'Falta el teléfono en el cuerpo de la solicitud')
   }
-  // convertimos el valor de la variable telefono a un string (cadena de texto) para poder hacer la validacion de la cantirdad de digitos
-  const telefonoStr = String(telefono)
 
-  if (telefono <= 0) {
+  const telefonoNumerico = Number(telefono)
+  if (typeof telefonoNumerico !== 'number' || Number.isNaN(telefonoNumerico) || !Number.isInteger(telefonoNumerico)) {
+    resError(400, 'El teléfono debe ser un número entero')
+  }
+  if (telefonoNumerico <= 0 || telefonoNumerico.toString().length !== 10) {
     resError(400, 'El teléfono debe ser mayor a cero')
   }
 
-  if (telefonoStr.length !== 10) {
-    resError(400, 'El teléfono debe tener exactamente 10 dígitos')
-  }
-  return telefono
+  return telefonoNumerico
 }
 
 // cuerpo: un objeto (generalmente será el req.body de una petición HTTP).
 // deberiaExistir: un booleano que indica si la cédula debería estar ya registrada en la base de datos.
 // Devuelve un Promise<number> si la validación es correcta o never si lanza un error con resError.
-export async function validarCedula (cuerpo: object, deberiaExistir: boolean): never | Promise<number> {
-  // Verifica si el objeto cuerpo tiene la propiedad cedula directamente (sin heredarla de su prototipo).
-  if (Object.hasOwn(cuerpo, 'cedula')) {
-    // Se usa (cuerpo as any) para que TypeScript no se queje por no conocer la estructura exacta del objeto.
-    const cedula = (cuerpo as any).cedula
-    if (typeof cedula !== 'number' || isNaN(cedula)) {
-      resError(400, 'La cédula debe ser un número')
-    }
-
-    if (cedula <= 0 || cedula.toString().length < 5 || cedula.toString().length > 10) {
-      resError(400, 'La cédula debe tener entre 5 y 10 dígitos')
-    }
-    // Llama a la función existeCedula para verificar en la base de datos si la cédula ya existe.
-    // existe será true o false.
-    const existe = await existeCedula(cedula)
-    // Si la cédula ya existe en la DB pero no debería existir (ejemplo: registrar un nuevo usuario con una cédula repetida), devuelve error.
-    if (existe && !deberiaExistir) {
-      resError(400, 'La cedula ya esta registrada')
-    }
-    // Si la cédula no existe en la DB pero sí debería existir (ejemplo: actualizar/eliminar un usuario que no está registrado), devuelve error.
-    if (!existe && deberiaExistir) {
-      resError(400, 'La cedula no esta registrada')
-    }
-    // Si pasó todas las validaciones, retorna el número de la cédula.
-    return cedula
+export async function validarCedula (cedula: unknown, deberiaExistir: boolean): never | Promise<number> {
+  if (cedula == null) {
+    resError(400, 'La cédula es obligatoria')
   }
-  resError(400, 'Falta la cedula en el cuerpo de la solicitud')
+  console.log(cedula)
+  console.log(typeof cedula)
+  const cedulaNumerica = Number(cedula)
+  if (typeof cedulaNumerica !== 'number' || Number.isNaN(cedulaNumerica) || !Number.isInteger(cedulaNumerica)) {
+    resError(400, 'La cédula debe ser un número entero')
+  }
+
+  if (cedulaNumerica <= 0 || cedulaNumerica.toString().length < 5 || cedulaNumerica.toString().length > 10) {
+    resError(400, 'La cédula debe tener entre 5 y 10 dígitos')
+  }
+  // Llama a la función existeCedula para verificar en la base de datos si la cédula ya existe.
+  // existe será true o false.
+  const existe = await existeCedula(cedulaNumerica)
+  // Si la cédula ya existe en la DB pero no debería existir (ejemplo: registrar un nuevo usuario con una cédula repetida), devuelve error.
+  if (existe && !deberiaExistir) {
+    resError(409, 'La cedula ya esta registrada')
+  }
+  // Si la cédula no existe en la DB pero sí debería existir (ejemplo: actualizar/eliminar un usuario que no está registrado), devuelve error.
+  if (!existe && deberiaExistir) {
+    resError(404, 'La cedula no esta registrada')
+  }
+  // Si pasó todas las validaciones, retorna el número de la cédula.
+  return cedulaNumerica
 }
 
 // Define una función auxiliar que recibe un número cedula y busca en la colección ColUsuarios si hay algún documento con esa cédula.
