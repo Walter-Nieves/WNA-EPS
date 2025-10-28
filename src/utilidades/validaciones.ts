@@ -244,9 +244,9 @@ export function validarClavesActualizacion (claveVieja: unknown, claveNueva: unk
     resError(400, 'La clave nueva debe tener al menos 6 caracteres')
   }
 
-  if (limpiaVieja === limpiaNueva) {
-    resError(400, 'La clave nueva no puede ser igual a la clave vieja')
-  }
+  // if (limpiaVieja === limpiaNueva) {
+  //   resError(400, 'La clave nueva no puede ser igual a la clave vieja')
+  // }
 
   return { claveVieja: limpiaVieja, claveNueva: limpiaNueva }
 }

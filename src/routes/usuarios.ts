@@ -15,7 +15,7 @@ const personas = Router()
 personas.get('/', async (_, res) => {
   // filtro omitir arreglo vacunas
 
-  const resultado = await ColUsuarios.find({}, { projection: { vacunas: false, clave: false } }).toArray() as Usuario[]
+  const resultado = await ColUsuarios.find({}, { projection: { vacunas: false, clave: false, foto: false } }).toArray() as Usuario[]
   res.json(resultado)
 })
 
@@ -32,7 +32,8 @@ personas.get('/:id', async (req, res) => {
     // Caso 1: si el id recibido es un ObjectId válido
     if (ObjectId.isValid(id)) {
       // findOne devuelve Usuario | null → hay que tiparlo así
-      resultado = await ColUsuarios.findOne({ _id: new ObjectId(id) }) as Usuario | null
+      // añadimos una proyeccin para excluir la clave
+      resultado = await ColUsuarios.findOne({ _id: new ObjectId(id) }, { projection: { clave: false } }) as Usuario | null
     } else {
       // Caso 2: intentar parsear el id como un número (cédula)
       const cedula = parseInt(id, 10)
@@ -49,7 +50,8 @@ personas.get('/:id', async (req, res) => {
 
       const errorCedula = cedulaEsValida(cedula); if (errorCedula !== false) return res.status(400).json(errorCedula)
       // findOne devuelve Usuario | null → lo volvemos a tipar igual
-      resultado = await ColUsuarios.findOne({ cedula }) as Usuario | null
+      // tambien excluimos la clave
+      resultado = await ColUsuarios.findOne({ cedula }, { projection: { clave: false } }) as Usuario | null
     }
 
     // Si no encontró nada (resultado === null), respondemos 404
@@ -108,7 +110,7 @@ personas.post('/', subir.single('foto'), async (req, res) => {
 })
 
 // actualizar persona (PUT)
-personas.put('/:id', async (req, res) => {
+personas.put('/:id', subir.single('foto'), async (req, res) => {
   try {
     // --- validar que el cuerpo sea un objeto válido ---
     validarCuerpoActualizacion(req.body)
@@ -118,7 +120,7 @@ personas.put('/:id', async (req, res) => {
 
     // --- determinar si se actualizará por _id o por cédula ---
     let posibleUsuario: Usuario | null = null
-    if (ObjectId.isValid(id)) {
+    if (ObjectId.isValid(id as string)) {
       posibleUsuario = await ColUsuarios.findOne({ _id: new ObjectId(id) }) as Usuario
     } else {
       const cedula = await validarCedula(id, true) // true = debe existir
@@ -131,7 +133,7 @@ personas.put('/:id', async (req, res) => {
     // verificar cedula que proviene del cuerpo
     const cedula = await validarCedula(body.cedula, true)
     // si todo esta ok, verificar que la cedula ingresada es igual a la del usuario encontrado
-    if (ObjectId.isValid(id)) {
+    if (ObjectId.isValid(id as string)) {
       const posibleOtroUsuario = await ColUsuarios.findOne({ _id: new ObjectId(id), cedula }) as Usuario
       if (posibleOtroUsuario == null) {
         resError(400, 'La cédula ya está registrada en otro usuario')
@@ -149,17 +151,28 @@ personas.put('/:id', async (req, res) => {
     actualizaciones.nombre = nombreCompleto.nombre
     actualizaciones.apellido = nombreCompleto.apellido
 
-    actualizaciones.foto = validarFoto(body.foto)
+    actualizaciones.foto = validarFoto(req.file)
 
     actualizaciones.telefono = validarTelefono(body.telefono)
 
-    if (body.claveVieja !== undefined && body.claveNueva !== undefined) {
-      const { claveVieja, claveNueva } = validarClavesActualizacion(body.claveVieja, body.claveNueva)
-      if (posibleUsuario.clave !== claveVieja) {
-        return res.status(400).json({ error: 'La clave vieja no coincide con la registrada' })
-      }
-      actualizaciones.clave = claveNueva
+    const { claveVieja, claveNueva } = validarClavesActualizacion(body.claveVieja, body.claveNueva)
+    const coincide = await bcrypt.compare(claveVieja, posibleUsuario.clave)
+    if (!coincide) {
+      return res.status(400).json({ error: 'La clave vieja no coincide con la registrada' })
     }
+    const sal = await bcrypt.genSalt(12)
+    const claveHash = await bcrypt.hash(claveNueva, sal)
+
+    // if (posibleUsuario.clave !== claveVieja) {
+    //   return res.status(400).json({ error: 'La clave vieja no coincide con la registrada' })
+    // }
+    // actualizaciones.clave = claveNueva
+    // 🟡 comparar hash con bcrypt.compare() en lugar de comparar texto plano
+
+    // 🟡 generar una nueva sal y hashear la clave nueva
+
+    // 🟡 guardar el nuevo hash en lugar de la clave plana
+    actualizaciones.clave = claveHash
 
     // --- si no hay cambios ---Este if asegura que no se ejecute un update vacío en MongoDB, lo que tendría poco sentido.
     // si actualizaciones esta vacio quiere decir que no se realizo ninguna novedad
