@@ -10,6 +10,7 @@ import Home from "./Componentes/Home";
 import NotFound from "./Componentes/NotFound";
 // import { set } from "react-hook-form";
 import { useState } from "react";
+import FormularioMod from "./Componentes/FormularioMod";
 
 // Componente principal de la aplicación
 function App() {
@@ -31,6 +32,7 @@ function App() {
             <Route index element={<Login puedoEntrar={setLogin} />} />
             <Route path="login" element={<Login puedoEntrar={setLogin} />} />
             <Route path="register" element={<RegisterForm />} />
+            <Route path="form" element={<FormularioMod />} />
           </Route>
           {
             login &&

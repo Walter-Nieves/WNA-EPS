@@ -9,8 +9,6 @@ import Campo from "./Campo";
 import { useNavigate } from "react-router-dom";
 
 
-
-
 export default function RegisterForm() {
   const {
     register,
@@ -56,7 +54,7 @@ export default function RegisterForm() {
       cuerpo.append("clave", data.clave);
 
 
-      const peticion = await fetch("http://localhost:3000/api/usuarios", {
+      const peticion = await fetch("https://wna-eps-production.up.railway.app/api/usuarios", {
         method: "POST",
         body: cuerpo
       });
@@ -230,9 +228,7 @@ export default function RegisterForm() {
             <input
               type="file"
               accept="image/*"
-              {...register("foto", {
-                required: "La foto es obligatoria",
-              })}
+              {...register("foto")}
               className="hidden"
             />
           </label>

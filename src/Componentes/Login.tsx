@@ -52,7 +52,7 @@ function Login({puedoEntrar}: {puedoEntrar: (valor:boolean)=>void} ) { //nuevo p
   const handlerSubmit = handleSubmit(async (data) => {
     try {
       const peticion = await fetch(
-        "http://localhost:3000/api/login/",{
+        "https://wna-eps-production.up.railway.app/api/login/",{
           method:"POST",
           headers:{
             "Content-Type": "application/json"
@@ -65,7 +65,7 @@ function Login({puedoEntrar}: {puedoEntrar: (valor:boolean)=>void} ) { //nuevo p
       }
       const respuesta = await peticion.json();
       console.log(respuesta);
-      onSubmit(data);
+      // onSubmit(data);
       alert(" Binvenido login exitoso 🚀");
       puedoEntrar(true); //nuevo
       navegarA("/home"); //nuevo
@@ -75,13 +75,13 @@ function Login({puedoEntrar}: {puedoEntrar: (valor:boolean)=>void} ) { //nuevo p
     }
   });
 
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
-  const onSubmit = (data: LoginInputs) => {
-    console.log("Datos de login:", data);
-    alert("Login exitoso 🚀");
-    navigate("/");
-  };
+  // const onSubmit = (data: LoginInputs) => {
+  //   console.log("Datos de login:", data);
+  //   alert("Login exitoso 🚀");
+  //   navigate("/");
+  // };
 
   // const [mostrarClave, setMostrarClave] = useState(false);
 
@@ -153,7 +153,7 @@ function Login({puedoEntrar}: {puedoEntrar: (valor:boolean)=>void} ) { //nuevo p
               }
               alt=""
             /> */}
-            <Campo nombre="clave" placeholder="Contraseña" tipo="text" errors={errors}
+            <Campo nombre="clave" placeholder="Contraseña" tipo="password" errors={errors}
           regis={register("clave", {
               required: "La contraseña es obligatoria",
               minLength: {
