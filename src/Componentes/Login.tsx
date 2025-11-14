@@ -35,7 +35,6 @@ import CampoGenerico from "./Campo";
 
 //   return true; // válido
 // };
-
 const Campo = CampoGenerico<LoginInputs>
 
 function Login({puedoEntrar}: {puedoEntrar: (valor:boolean)=>void} ) { //nuevo props
@@ -51,29 +50,69 @@ function Login({puedoEntrar}: {puedoEntrar: (valor:boolean)=>void} ) { //nuevo p
 
   const handlerSubmit = handleSubmit(async (data) => {
     try {
-      const peticion = await fetch(
-        "https://wna-eps-production.up.railway.app/api/login/",{
-          method:"POST",
-          headers:{
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(data)
-        }
-      );
-      if (!peticion.ok) {
-        throw new Error("Los datos ingresados son incorrectos");
-      }
+      // 🟢 NUEVO: URL del backend local (puede ser Railway, pero con cookie segura)
+      const peticion = await fetch("http://localhost:3000/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ cedula: data.cedula , clave:data.clave }), // 🔵 CAMBIO: ajustado a la API (usa correo o cedula según backend)
+        credentials: "include", //NUEVO: Permite enviar y recibir cookies HttpOnly
+      });
+
       const respuesta = await peticion.json();
-      console.log(respuesta);
-      // onSubmit(data);
-      alert(" Binvenido login exitoso 🚀");
-      puedoEntrar(true); //nuevo
-      navegarA("/home"); //nuevo
+
+      if (!peticion.ok) {
+        throw new Error(respuesta);
+      }
+
+      console.log("✅ Login correcto:", respuesta);
+
+      //ELIMINADO: No se usa document.cookie, la cookie la crea el servidor
+      // document.cookie = `cedula=${data.cedula}; path=/; max-age=3600`;
+
+      puedoEntrar(true); // ✅ Activar el estado de sesión en App.tsx
+      alert("Bienvenido, sesión iniciada 🚀");
+      navegarA("/home");
     } catch (error) {
-      alert("Ha ocurrido un error");
-      console.error(error);
+      console.error("❌ Error en login:", error);
+      alert("Ha ocurrido un error al iniciar sesión");
+      puedoEntrar(false);
     }
   });
+
+  // const handlerSubmit = handleSubmit(async (data) => {
+  //   try {
+  //     const peticion = await fetch(
+  //       "https://wna-eps-production.up.railway.app/api/login/",{
+  //         method:"POST",
+  //         headers:{
+  //           "Content-Type": "application/json"
+  //         },
+  //         body: JSON.stringify(data)
+  //       }
+  //     );
+  //     if (!peticion.ok) {
+  //       throw new Error("Los datos ingresados son incorrectos");
+  //     }
+  //     const respuesta = await peticion.json();
+  //     console.log(respuesta);
+  //     // onSubmit(data);
+  //     alert("Bienvenido login exitoso 🚀");
+  //      // Crear cookie con la cédula como clave y numero de cedula como valor
+  //   document.cookie = `cedula=${data.cedula}; path=/; max-age=3600`; 
+  //   // (path=/ hace que la cookie esté disponible en todo el sitio)
+  //   // (max-age=3600 dura 1 hora)
+    
+  //   // 🟩 Mostrar mensaje de confirmación
+  //   console.log("🍪 Cookie creada correctamente:", document.cookie);
+  //     puedoEntrar(true); //nuevo
+  //     navegarA("/home"); //nuevo
+  //   } catch (error) {
+  //     alert("Ha ocurrido un error");
+  //     console.error(error);
+  //   }
+  // });
 
   // const navigate = useNavigate();
 
@@ -99,7 +138,7 @@ function Login({puedoEntrar}: {puedoEntrar: (valor:boolean)=>void} ) { //nuevo p
         className="w-full max-w-sm flex flex-col gap-4"
       >
         {/* Email */}
-         <Campo nombre="cedula" placeholder="Numero de cédula" tipo="number" errors={errors}
+         <Campo  nombre="cedula" placeholder="Numero de cédula" tipo="number" errors={errors}
          regis={register("cedula", {
             required: {
               value: true,
@@ -110,8 +149,6 @@ function Login({puedoEntrar}: {puedoEntrar: (valor:boolean)=>void} ) { //nuevo p
               value: 10,
               message: "Debe tener como máximo 10 dígitos",
             },
-
-            
           })}/>
         {/* <input
           type="number" // 👈 importante: no usar "email"
