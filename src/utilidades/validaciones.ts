@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb'
 import { ColUsuarios } from '..'
-import { FuncError } from '../types'
+import { FuncError, Rol } from '../types'
 
 export const cedulaEsValida: FuncError<number> = (cedula) => {
   if (cedula <= 0 || cedula.toString().length < 5 || cedula.toString().length > 10) {
@@ -260,4 +260,21 @@ export function validarCuerpoActualizacion (cuerpo: any): void | never {
   if (!Object.hasOwn(cuerpo, '_id') && !Object.hasOwn(cuerpo, 'cedula')) {
     resError(400, 'Debe enviarse _id o cedula para actualizar el usuario')
   }
+}
+
+export function validarRol (rolRequest: Rol, rolBody: unknown): Rol | never {
+  // Rol body si existe
+  if (rolBody == null) {
+    resError(400, 'El rol es obligatorio en el cuerpo de la solicitud')
+  }
+  if (rolRequest === Rol.Paciente || rolRequest === Rol.Vacunador) {
+    if (rolBody !== Rol.Administrador) {
+      resError(400, 'Solo un administrador puede crear usuarios diferente a pacientes')
+    }
+  } else {
+    if (!Object.values(Rol).includes(rolBody as Rol)) {
+      resError(400, 'El rol no es válido')
+    }
+  }
+  return rolBody as Rol
 }

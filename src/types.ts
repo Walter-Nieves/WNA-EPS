@@ -27,6 +27,12 @@ export interface Vacuna {
   lugar: string
 }
 
+export enum Rol {
+  'Vacunador' = 'Vacunador',
+  'Paciente' = 'Paciente',
+  'Administrador' = 'Administrador'
+}
+
 export interface Usuario {
   _id: ObjectId
   nombre: string
@@ -36,6 +42,7 @@ export interface Usuario {
   telefono: number
   clave: string
   vacunas: Vacuna[]
+  rol: Rol
 }
 
 // Con export type se está creando un alias de tipo llamado FuncError<T>.

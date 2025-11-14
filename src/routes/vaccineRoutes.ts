@@ -4,21 +4,20 @@ import { ColUsuarios, ColVacunas } from '../index'
 import { Vacuna, Vacunas } from '../types'
 import { cedulaEsValida } from '../utilidades/validaciones'
 
-const vacunas = Router()
+const vaccineRoutes = Router()
 
 // buscar personas
-vacunas.get('/', async (_, res) => {
+vaccineRoutes.get('/', async (_, res) => {
   try {
     const resultado = await ColVacunas.find().toArray() as Vacuna[]
     res.json(resultado)
   } catch (error) {
-    console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
 
 // buscar persona
-vacunas.get('/:id', async (req, res) => {
+vaccineRoutes.get('/:id', async (req, res) => {
   const { id } = req.params
 
   try {
@@ -68,7 +67,7 @@ vacunas.get('/:id', async (req, res) => {
 //   lugar: string
 // }
 
-vacunas.post('/:id', async (req, res) => {
+vaccineRoutes.post('/:id', async (req, res) => {
   try {
     const { id } = req.params
 
@@ -151,13 +150,12 @@ vacunas.post('/:id', async (req, res) => {
 
     res.status(201).json({ ...nuevaVacuna, _id: _id.toString() })
   } catch (error) {
-    console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
 
 // Agregar varias vacunas en una sola petición
-vacunas.post('/:id/multiples', async (req, res) => {
+vaccineRoutes.post('/:id/multiples', async (req, res) => {
   const { id } = req.params
 
   const cedula = parseInt(id, 10)
@@ -254,4 +252,4 @@ vacunas.post('/:id/multiples', async (req, res) => {
   )
 })
 
-export default vacunas
+export default vaccineRoutes
