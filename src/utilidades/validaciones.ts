@@ -1,6 +1,13 @@
+import dotenv from 'dotenv'
+import { Response } from 'express'
+import jwt, { JwtPayload } from 'jsonwebtoken'
 import { ObjectId } from 'mongodb'
 import { ColUsuarios } from '..'
-import { FuncError, Rol } from '../types'
+import { FuncError, Rol, ServerFile } from '../types'
+
+dotenv.config()
+
+const SECRETO: string = process.env.JWT_SECRET as string
 
 export const cedulaEsValida: FuncError<number> = (cedula) => {
   if (cedula <= 0 || cedula.toString().length < 5 || cedula.toString().length > 10) {
@@ -39,13 +46,6 @@ export const propiedadesSonNulas: FuncError<unknown[]> = (propiedades) => {
   return false
 }
 
-// export const confirmarClave: FuncError<{ vieja: string, nueva: string }> = ({ vieja, nueva }) => {
-//   if (vieja !== nueva) {
-//     return { error: 'Las claves no coinciden' }
-//   }
-//   return false
-// }
-
 export const sonTipoCorrecto: FuncError<{ valores: unknown[], tipos: string[] }> = ({ valores, tipos }) => {
   for (let i = 0; i < valores.length; i++) {
     // eslint-disable-next-line valid-typeof
@@ -77,35 +77,56 @@ export function validarCuerpo (cuerpo: unknown, debeSerArray: boolean): object |
   return cuerpo
 }
 
+export function responseToError (error: Error, res: Response): Response {
+  console.log('prueba')
+  console.log(error)
+  if (error.message.startsWith('{')) {
+    const objetoError = JSON.parse(error.message)
+    return res.status(objetoError.codigo).json(objetoError.mensaje)
+  }
+  return res.status(500).json({ error: 'Error interno en el servidor' })
+}
+
+export function validarToken (token: string): JwtPayload | never {
+  // verificamos el token que este bien hecho
+  try {
+    const decodificado = jwt.verify(token, SECRETO) as JwtPayload
+    return decodificado
+  } catch (error) {
+    // este try-catch solo maneja errores del jwt.verify
+    resError(401, 'Token de autenticación inválido o expirado')
+  }
+}
+
 function sanitizarString (valor: string): string {
   return valor
     .trim() // quitar espacios al inicio/fin
     .replace(/\s{2,}/g, ' ') // reducir múltiples espacios a uno
 }
 
+export function validarCampo (campo: string, valor: unknown): string | never {
+  if (typeof valor !== 'string') {
+    resError(400, `${campo} debe ser un string`)
+  }
+
+  const limpio = sanitizarString(valor)
+
+  if (limpio === '') {
+    resError(400, `${campo} no puede estar vacío`)
+  }
+
+  if (limpio.length < 2) {
+    resError(400, `${campo} debe tener al menos 2 caracteres`)
+  }
+
+  if (!/^(?!.*\s{2})[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(limpio)) {
+    resError(400, `${campo} solo puede contener letras y espacios (no se permiten dos espacios seguidos)`)
+  }
+
+  return limpio
+}
 export function validarNombreApellido (nombre: unknown, apellido: unknown): { nombre: string, apellido: string } | never {
   // --- función auxiliar para validar ---
-  function validarCampo (campo: string, valor: unknown): string | never {
-    if (typeof valor !== 'string') {
-      resError(400, `${campo} debe ser un string`)
-    }
-
-    const limpio = sanitizarString(valor)
-
-    if (limpio === '') {
-      resError(400, `${campo} no puede estar vacío`)
-    }
-
-    if (limpio.length < 2) {
-      resError(400, `${campo} debe tener al menos 2 caracteres`)
-    }
-
-    if (!/^(?!.*\s{2})[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(limpio)) {
-      resError(400, `${campo} solo puede contener letras y espacios (no se permiten dos espacios seguidos)`)
-    }
-
-    return limpio
-  }
 
   // --- validaciones ---
   const nombreLimpio = validarCampo('nombre', nombre)
@@ -120,25 +141,63 @@ export function validarNombreApellido (nombre: unknown, apellido: unknown): { no
   return nombreCompleto
 }
 
-export function validarFoto (foto: unknown): File | never {
+export function validarNombres (propiedad: string, valor: unknown): never | string {
+  if (valor == null) {
+    resError(400, `Falta el ${propiedad} en el cuerpo de la solicitud`)
+  }
+
+  if (typeof valor !== 'string') {
+    resError(400, `El ${propiedad} debe ser una cadena de texto`)
+  }
+
+  let valor2 = valor.trim()
+  valor2 = valor2.replace(/\s{2,}/g, ' ')
+
+  if (valor2.length < 3 || valor2.length > 50) {
+    resError(400, 'El nombre debe tener entre 3 y 50 caracteres')
+  }
+
+  valor2 = valor2.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+  return valor2
+}
+
+export function validarFoto (foto: unknown): never | string {
   if (foto == null) {
     resError(400, 'Falta la foto en el cuerpo de la solicitud')
   }
-  return foto as File
+  if (typeof foto !== 'object') {
+    resError(400, 'Formato de foto inválido: se esperaba un objeto')
+  }
 
-  // const limpio = sanitizarString(foto)
+  const f: ServerFile = foto as ServerFile
 
-  // if (limpio === '') {
-  //   resError(400, 'La foto no puede estar vacía')
-  // }
+  if (typeof f.fieldname !== 'string' || f.fieldname.trim() === '') {
+    resError(400, "Propiedad 'fieldname' inválida o faltante")
+  }
 
-  // // validar que sea URL válida y que termine en una extensión permitida
-  // const regex = /^(https?:\/\/.*\.(jpg|jpeg|png|gif|avif|webp|bmp))$/i
-  // if (!regex.test(limpio)) {
-  //   resError(400, 'La foto debe ser una URL válida con extensión de imagen')
-  // }
+  if (typeof f.originalname !== 'string' || f.originalname.trim() === '') {
+    resError(400, "Propiedad 'originalname' inválida o faltante")
+  }
 
-  // return limpio
+  if (typeof f.encoding !== 'string' || f.encoding.trim() === '') {
+    resError(400, "Propiedad 'encoding' inválida o faltante")
+  }
+
+  if (typeof f.mimetype !== 'string' || f.mimetype.trim() === '') {
+    resError(400, "Propiedad 'mimetype' inválida o faltante")
+  }
+
+  if (typeof f.size !== 'number' || !Number.isFinite(f.size) || f.size < 0) {
+    resError(400, "Propiedad 'size' inválida o faltante")
+  }
+  if (!Buffer.isBuffer(f.buffer)) {
+    resError(400, "Propiedad 'buffer' inválida o faltante")
+  }
+  return fromMulterToUri(f)
+}
+export function fromMulterToUri (serverFile: ServerFile): string {
+  return `data:${serverFile.mimetype};base64,${serverFile.buffer.toString('base64')}`
 }
 
 export function validarClave (clave: unknown): string | never {
@@ -159,25 +218,49 @@ export function validarClave (clave: unknown): string | never {
   return limpio
 }
 
-export function validarTelefono (telefono: unknown): number | never {
+export function validarTelefono (telefono: unknown): string {
   if (telefono == null) {
-    resError(400, 'Falta el teléfono en el cuerpo de la solicitud')
+    return resError(400, 'Falta el teléfono en el cuerpo de la solicitud')
   }
 
-  const telefonoNumerico = Number(telefono)
-  if (typeof telefonoNumerico !== 'number' || Number.isNaN(telefonoNumerico) || !Number.isInteger(telefonoNumerico)) {
-    resError(400, 'El teléfono debe ser un número entero')
-  }
-  if (telefonoNumerico <= 0 || telefonoNumerico.toString().length !== 10) {
-    resError(400, 'El teléfono debe ser mayor a cero')
+  if (typeof telefono !== 'string') {
+    return resError(400, 'El teléfono debe ser texto')
   }
 
-  return telefonoNumerico
+  const tel = telefono.trim().toLowerCase()
+
+  if (!/^[0-9\s()+ext]+$/i.test(tel)) {
+    return resError(400, 'El teléfono contiene caracteres inválidos')
+  }
+
+  const extMatches = tel.match(/ext/g) ?? []
+  if (extMatches.length > 1) {
+    return resError(400, "La palabra 'ext' solo se puede usar una vez")
+  }
+
+  const plusMatches = tel.match(/\+/g) ?? []
+  if (plusMatches.length > 1) {
+    return resError(400, "Solo se permite un '+'")
+  }
+
+  const openParMatches = tel.match(/\(/g) ?? []
+  const closeParMatches = tel.match(/\)/g) ?? []
+
+  if (openParMatches.length > 1 || closeParMatches.length > 1) {
+    return resError(400, 'Solo se permite un paréntesis de apertura y cierre')
+  }
+
+  if (tel.length < 10) {
+    return resError(400, 'El teléfono es demasiado corto')
+  }
+
+  return tel
 }
 
-// cuerpo: un objeto (generalmente será el req.body de una petición HTTP).
-// deberiaExistir: un booleano que indica si la cédula debería estar ya registrada en la base de datos.
-// Devuelve un Promise<number> si la validación es correcta o never si lanza un error con resError.
+// Unexpected nullable object value in conditional. An explicit null check is reqired
+// la propiedad 'length' no existe en el tipo 'true | never[]'.la propiedad 'length ' no existe en el tipo 'true'.
+// la propiedad 'length' no existe en el tipo 'true | never[]'.la propiedad 'length ' no existe en el tipo 'true'.
+
 export async function validarCedula (cedula: unknown, deberiaExistir: boolean): never | Promise<number> {
   if (cedula == null) {
     resError(400, 'La cédula es obligatoria')
@@ -207,8 +290,6 @@ export async function validarCedula (cedula: unknown, deberiaExistir: boolean): 
   return cedulaNumerica
 }
 
-// Define una función auxiliar que recibe un número cedula y busca en la colección ColUsuarios si hay algún documento con esa cédula.
-// Devuelve true si existe, false si no.
 async function existeCedula (cedula: number): Promise<boolean> | never {
   const cedulaExistente = await ColUsuarios.findOne({ cedula })
   return cedulaExistente != null
@@ -244,10 +325,6 @@ export function validarClavesActualizacion (claveVieja: unknown, claveNueva: unk
     resError(400, 'La clave nueva debe tener al menos 6 caracteres')
   }
 
-  // if (limpiaVieja === limpiaNueva) {
-  //   resError(400, 'La clave nueva no puede ser igual a la clave vieja')
-  // }
-
   return { claveVieja: limpiaVieja, claveNueva: limpiaNueva }
 }
 
@@ -262,19 +339,22 @@ export function validarCuerpoActualizacion (cuerpo: any): void | never {
   }
 }
 
-export function validarRol (rolRequest: Rol, rolBody: unknown): Rol | never {
-  // Rol body si existe
-  if (rolBody == null) {
+export function validarRolParaAcciones (rolActual: Rol, rolEsperado: Rol[]): never | void {
+  if (!rolEsperado.includes(rolActual)) {
+    resError(403, 'Tu Rol no tiene permisos para realizar esta acción')
+  }
+}
+
+export function validarRolDelBody (rolRecibido: unknown, rolEsperado: Rol[]): never | Rol {
+// Rol del body si existe
+  if (rolRecibido == null) {
     resError(400, 'El rol es obligatorio en el cuerpo de la solicitud')
   }
-  if (rolRequest === Rol.Paciente || rolRequest === Rol.Vacunador) {
-    if (rolBody !== Rol.Administrador) {
-      resError(400, 'Solo un administrador puede crear usuarios diferente a pacientes')
-    }
-  } else {
-    if (!Object.values(Rol).includes(rolBody as Rol)) {
-      resError(400, 'El rol no es válido')
-    }
+  if (!Object.values(Rol).includes(rolRecibido as Rol)) {
+    resError(400, 'El rol no es válido')
   }
-  return rolBody as Rol
+  if (!rolEsperado.includes(rolRecibido as Rol)) {
+    resError(403, 'Tu Rol no esta hecho para realizar esta acción')
+  }
+  return rolRecibido as Rol
 }

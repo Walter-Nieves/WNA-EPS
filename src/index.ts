@@ -12,11 +12,12 @@ import { mostrarRutaEnFlechas } from './middleware/mostrarRutaEnFlechasMiddlewar
 import { sapo } from './middleware/sapoMiddleware'
 
 import authRoute from './routes/authRoute'
+import enumVaccineRoutes from './routes/enumVaccineRoutes'
 import userRoutes from './routes/userRoutes'
 import vaccineRoutes from './routes/vaccineRoutes'
 
-import { authVerify } from './middleware/authVerifyMiddleware'
-import { Usuario, Vacuna } from './types'
+import { authVerify } from './middleware/authMiddleware'
+import { enumVaccine, Usuario, Vacuna } from './types'
 
 dotenv.config()
 
@@ -27,6 +28,7 @@ const cliente = new MongoClient(uri)
 let db: Db
 export let ColUsuarios: Collection<Usuario>
 export let ColVacunas: Collection<Vacuna>
+export let colEnumVaccines: Collection<enumVaccine>
 
 const app = Express()
 app.use(cors({ origin: process.env.FRONT_DOMAIN, credentials: true }))// doble signo de pregunta operador ternario de typescript
@@ -36,8 +38,9 @@ app.use(json())
 app.use(cookieParser()) //  NUEVO: permite leer cookies
 app.use(morgan('dev')) // morgan como middleware de logging en el servidor Express
 
-app.use('/api/usuarios', userRoutes)
-app.use('/api/vacunas', authVerify, vaccineRoutes)
+app.use('/api/usuarios', authVerify(true), userRoutes)
+app.use('/api/vacunas', authVerify(true), vaccineRoutes)
+app.use('/api/enumvaccines', authVerify(true), enumVaccineRoutes)
 app.use('/auth', authRoute)
 
 app.use(sapo) // middleware de prueba
@@ -62,6 +65,9 @@ async function conectar (): Promise<void> {
 
     const colleccionVacunas = process.env.MONGO_COL_VAC as string
     ColVacunas = db.collection(colleccionVacunas)
+
+    const colleccionEnumVacunas = process.env.MONGO_COL_ENUM_VAC as string
+    colEnumVaccines = db.collection(colleccionEnumVacunas)
 
     app.listen(PORT, () => {
       console.log(`Servidor escuchando en http://localhost:${PORT}`)

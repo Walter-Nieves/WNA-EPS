@@ -1,7 +1,5 @@
+import { NextFunction, Request, Response } from 'express'
 import { ObjectId } from 'mongodb'
-
-// export type Vacunas = 'Pfizer-BionNTech' | 'Moderna' | 'AztraZeneca' | 'Janssen' | 'Sinopharm'
-// cambiar vacunas por enum y mostrar ejemplo de validacion
 
 export enum Vacunas {
   'Pfizer-BionNTech' = 'Pfizer-BionNTech',
@@ -10,20 +8,36 @@ export enum Vacunas {
   'Janssen' = 'Janssen',
   'Sinopharm' = 'Sinopharm'
 }
-
-// const nombre = Vacunas['Pfizer-BionNTech'] // ejemplo de uso
-// console.log(nombre)
-
-// if (Object.values(Vacunas).includes(nombre)) { // ejemplo de validacion
-//   console.log('La vacuna Pfizer-BionNTech es válida')
-// }
-
 export interface Vacuna {
   _id: ObjectId
   cedula: number
   fecha: Date
   nombre: Vacunas
-  vacunador: string
+  vacunadorCedula: number
+  lugar: string
+  agregadoPorRol?: Rol
+  agregadoPorId?: ObjectId
+}
+
+export interface VacunaResponse {
+  _id: ObjectId
+  cedula: number
+  fecha: Date
+  nombre: Vacunas
+  nombreVacunador: string
+  fotoVacunador: string
+  lugar: string
+}
+
+export interface VacunaResponseOtros {
+  _id: ObjectId
+  cedula: number
+  fecha: Date
+  nombre: Vacunas
+  nombreVacunador: string
+  fotoVacunador: string
+  nombrePaciente: string
+  fotoPaciente: string
   lugar: string
 }
 
@@ -37,12 +51,32 @@ export interface Usuario {
   _id: ObjectId
   nombre: string
   apellido: string
-  foto: File
+  foto: string
   cedula: number
-  telefono: number
+  telefono: string
   clave: string
-  vacunas: Vacuna[]
+  vacunas: ObjectId[]
   rol: Rol
+  isDeleted: boolean
+}
+export type middleware<Retorno> = (req: Request, res: Response, next: NextFunction) => Retorno
+
+export type FuncError<T> = (data: T) => false | { error: string }
+
+export interface enumVaccine {
+  _id: ObjectId
+  nombre: string
+  foto: string
+  isDeleted: boolean
+}
+
+export interface ServerFile {
+  fieldname: string
+  originalname: string
+  encoding: string
+  mimetype: string
+  size: number
+  buffer: Buffer
 }
 
 // Con export type se está creando un alias de tipo llamado FuncError<T>.
@@ -64,4 +98,3 @@ export interface Usuario {
 // Así, el tipo de retorno no es un boolean, sino una especie de union type (false | objeto).
 //  Si fuera true, tendrías que aclarar qué significa el true: ¿es éxito o error? En cambio, false se interpreta como “no hay error” (vacío).
 // se cambia esta opcion por validarCuerpo y las demas funciones
-export type FuncError<T> = (data: T) => false | { error: string }

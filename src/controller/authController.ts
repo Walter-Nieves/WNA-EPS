@@ -6,7 +6,7 @@ import { ObjectId } from 'mongodb'
 import { StringValue } from 'ms'
 import { ColUsuarios } from '..'
 import { Usuario } from '../types'
-import { resError, validarCedula, validarClave, validarCuerpo } from '../utilidades/validaciones'
+import { resError, responseToError, validarCedula, validarClave, validarCuerpo, validarToken } from '../utilidades/validaciones'
 
 dotenv.config()
 
@@ -67,12 +67,7 @@ export async function login (req: Request, res: Response): Promise <Response> {
 
     return res.json({ message: 'Acceso concedido' })
   } catch (error) {
-    const e = error as Error
-    if (e.message.startsWith('{')) {
-      const objetoError = JSON.parse(e.message)
-      return res.status(objetoError.codigo).json(objetoError.mensaje)
-    }
-    return res.status(500).json({ error: 'Error interno en el servidor' })
+    return responseToError(error as Error, res)
   }
 }
 
@@ -82,16 +77,8 @@ export async function refresh (req: Request, res: Response): Promise <Response> 
     if (refreshToken == null) resError(401, 'No hay token de refresco')
 
     let posibleUsuario: Usuario | null = null
-    let userId: string
-    // verificamos el token si esta bien hecho
-    try {
-      const decodificado = jwt.verify(refreshToken, SECRETO) as jwt.JwtPayload
-      userId = decodificado.sub as string
-    } catch (error) {
-      // este try-catch solo maneja errores del jwt.verify
-      resError(401, 'Token de refresco inválido o expirado')
-    }
-    // usuario con el id existe o no
+    const userId: string = validarToken(refreshToken).sub as string
+
     posibleUsuario = await ColUsuarios.findOne({ _id: new ObjectId(userId) })
     if (posibleUsuario == null) {
       return resError(404, 'Usuario no encontrado')
@@ -113,12 +100,26 @@ export async function refresh (req: Request, res: Response): Promise <Response> 
     })
     return res.json({ message: 'Token de acceso renovado' })
   } catch (error) {
-    const e = error as Error
-    console.log(e)
-    if (e.message.startsWith('{')) {
-      const objetoError = JSON.parse(e.message)
-      return res.status(objetoError.codigo).json(objetoError.mensaje)
-    }
-    return res.status(500).json({ error: 'Error interno en el servidor' })
+    return responseToError(error as Error, res)
+  }
+}
+
+export async function logout (req: Request, res: Response): Promise<Response> {
+  try {
+    res.clearCookie('accessToken', {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 1
+    })
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 1
+    })
+    return res.json({ message: 'Sesion cerrada correctamente' })
+  } catch (error) {
+    return responseToError(error as Error, res)
   }
 }
