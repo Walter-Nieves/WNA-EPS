@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
-const NotFound: React.FC = () => {
+const ErrorAutho: React.FC = () => {
   const navigate = useNavigate();
 
   // Estado para controlar el ángulo de rotación del gradiente
@@ -25,22 +25,22 @@ const NotFound: React.FC = () => {
     >
       {/* Animación del número 404 */}
       <motion.h1
-        className="text-8xl font-extrabold mb-4 text-blue-300 drop-shadow-lg"
+        className="text-[6rem] font-extrabold mb-4 text-blue-300 drop-shadow-lg"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 80, damping: 10 }}
       >
-        404
+        401
       </motion.h1>
 
       {/* Mensaje descriptivo */}
       <motion.h2
-        className="text-2xl font-semibold mb-2"
+        className="text-[1.5rem] font-semibold mb-2"
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.3, duration: 0.6 }}
       >
-        Oops... La dirección ingresada no existe
+        Oops... Al parecer no tienes permiso para ingresar a esta pagina
       </motion.h2>
 
       <motion.p
@@ -63,7 +63,7 @@ const NotFound: React.FC = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => navigate("/")}
-          className="px-6 py-2 bg-white text-blue-900 font-semibold rounded-xl shadow hover:bg-blue-100 transition"
+          className="px-6 py-2 bg-white text-blue-900 font-semibold rounded-[0.75rem] shadow hover:bg-blue-100 transition"
         >
           Volver al inicio
         </motion.button>
@@ -72,7 +72,7 @@ const NotFound: React.FC = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => navigate("/auth/login")}
-          className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-xl shadow hover:bg-blue-700 transition"
+          className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-[0.75rem] shadow hover:bg-blue-700 transition"
         >
           Ir al Login
         </motion.button>
@@ -81,4 +81,4 @@ const NotFound: React.FC = () => {
   );
 };
 
-export default NotFound;
+export default ErrorAutho;

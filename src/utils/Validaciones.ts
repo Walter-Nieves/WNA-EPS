@@ -26,3 +26,12 @@ export const validarCorreo = (campo: string) => {
 
   return true; // válido
 };
+
+const PLACEHOLDER = "https://cdn-icons-png.flaticon.com/512/149/149071.png"; 
+
+export function obtenerFotoValida(foto: unknown): string {
+  if (typeof foto === "string" && foto.trim() !== "") {
+    return foto;
+  }
+  return PLACEHOLDER;
+}

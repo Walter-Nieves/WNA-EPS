@@ -20,7 +20,7 @@ const info: InfoData = {
     description: "Ingresa a la pagina de inicio de sesión para ver tus vacunas",
     button: "Inicia sesión",
     parrafo1:"",
-    parrafo2:"¿Olvidaste tu clave?",
+    parrafo2:"",
     parrafo3:"Inicio de sesión"
   },
   register: {

@@ -1,159 +1,84 @@
 import { useForm } from "react-hook-form";
 import { useNavigate, Link } from "react-router-dom";
 import info from "../info";
-// import { useState } from "react";
-// import closedeye from "/icons/eye-slash.svg";
-// import openedeye from "/icons/eye.svg";
 import type { LoginInputs } from "../types";
 import CampoGenerico from "./Campo";
+import { useAuth } from "../Contexts/AuthContexts";
 
-// --- Validación personalizada de correo ---
-// Función de validación paso a paso
-// const validarCorreo = (campo: string) => {
-//   const valor = String(campo ?? "").trim();
+const Campo = CampoGenerico<LoginInputs>;
 
-//   if (!valor) return "El correo electrónico es obligatorio";
-
-//   // 1. Debe tener exactamente un "@"
-//   const partes = valor.split("@");
-//   if (partes.length !== 2) return "El correo debe contener exactamente un @";
-
-//   const [local, dominio] = partes;
-
-//   // 2. Local-part (antes del @)
-//   if (/[^a-zA-Z0-9._-]+/.test(local)) {
-//     return "El nombre de usuario solo puede contener letras (a-z, A-Z), números (0-9), punto (.), guion (-) y guion bajo (_)";
-//   }
-//   if (local.startsWith(".") || local.endsWith(".")) {
-//     return "El nombre de usuario no puede empezar ni terminar con un punto (.)";
-//   }
-
-//   // 3. Dominio
-//   if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(dominio)) {
-//     return "El dominio debe ser válido, por ejemplo: midominio.com o correo.ejemplo.org";
-//   }
-
-//   return true; // válido
-// };
-const Campo = CampoGenerico<LoginInputs>
-
-function Login({puedoEntrar}: {puedoEntrar: (valor:boolean)=>void} ) { //nuevo props
+function Login() {
+  //nuevo props
   const {
     register,
     handleSubmit,
-    // getValues,
-    // setValue,
     formState: { errors },
   } = useForm<LoginInputs>();
 
-  const navegarA = useNavigate();//nuevo
+  const { setLogged, setUsuario } = useAuth();
+  const navegarA = useNavigate();
+  // const { setLoading} = useAuth();
 
   const handlerSubmit = handleSubmit(async (data) => {
     try {
       // 🟢 NUEVO: URL del backend local (puede ser Railway, pero con cookie segura)
-      const peticion = await fetch("http://localhost:3000/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const peticion = await fetch(
+        import.meta.env.VITE_BACKEND + "/auth/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ cedula: data.cedula, clave: data.clave }), // 🔵 CAMBIO: ajustado a la API (usa correo o cedula según backend)
+          credentials: "include", //NUEVO: Permite enviar y recibir cookies HttpOnly
         },
-        body: JSON.stringify({ cedula: data.cedula , clave:data.clave }), // 🔵 CAMBIO: ajustado a la API (usa correo o cedula según backend)
-        credentials: "include", //NUEVO: Permite enviar y recibir cookies HttpOnly
-      });
+      );
 
       const respuesta = await peticion.json();
 
       if (!peticion.ok) {
-        throw new Error(respuesta);
+        throw new Error(respuesta?.error || "Error en login");
+        //throw new Error(respuesta);
       }
 
       console.log("✅ Login correcto:", respuesta);
 
-      //ELIMINADO: No se usa document.cookie, la cookie la crea el servidor
-      // document.cookie = `cedula=${data.cedula}; path=/; max-age=3600`;
-
-      puedoEntrar(true); // ✅ Activar el estado de sesión en App.tsx
       alert("Bienvenido, sesión iniciada 🚀");
-      navegarA("/home");
+
+      // setLoading(true);
+      setLogged(true);
+      //  AHORA TRAEMOS EL USUARIO
+      const userResp = await fetch(
+        import.meta.env.VITE_BACKEND + "/api/usuarios/me",
+        { credentials: "include" },
+      );
+
+      const usuario = await userResp.json();
+      setUsuario(usuario);
+
+      // Redirección base
+      navegarA("/home", { replace: true });
     } catch (error) {
       console.error("❌ Error en login:", error);
       alert("Ha ocurrido un error al iniciar sesión");
-      puedoEntrar(false);
     }
   });
-
-  // const handlerSubmit = handleSubmit(async (data) => {
-  //   try {
-  //     const peticion = await fetch(
-  //       "https://wna-eps-production.up.railway.app/api/login/",{
-  //         method:"POST",
-  //         headers:{
-  //           "Content-Type": "application/json"
-  //         },
-  //         body: JSON.stringify(data)
-  //       }
-  //     );
-  //     if (!peticion.ok) {
-  //       throw new Error("Los datos ingresados son incorrectos");
-  //     }
-  //     const respuesta = await peticion.json();
-  //     console.log(respuesta);
-  //     // onSubmit(data);
-  //     alert("Bienvenido login exitoso 🚀");
-  //      // Crear cookie con la cédula como clave y numero de cedula como valor
-  //   document.cookie = `cedula=${data.cedula}; path=/; max-age=3600`; 
-  //   // (path=/ hace que la cookie esté disponible en todo el sitio)
-  //   // (max-age=3600 dura 1 hora)
-    
-  //   // 🟩 Mostrar mensaje de confirmación
-  //   console.log("🍪 Cookie creada correctamente:", document.cookie);
-  //     puedoEntrar(true); //nuevo
-  //     navegarA("/home"); //nuevo
-  //   } catch (error) {
-  //     alert("Ha ocurrido un error");
-  //     console.error(error);
-  //   }
-  // });
-
-  // const navigate = useNavigate();
-
-  // const onSubmit = (data: LoginInputs) => {
-  //   console.log("Datos de login:", data);
-  //   alert("Login exitoso 🚀");
-  //   navigate("/");
-  // };
-
-  // const [mostrarClave, setMostrarClave] = useState(false);
-
-  // const toggleVisibilidad = () => {
-  //   setMostrarClave(!mostrarClave);
-  // };
-
   return (
-    <div className="bg-white h-full w-full flex justify-center items-center flex-col rounded-3xl">
-      <h2 className="text-2xl font-bold mb-6">{info.login.parrafo1}</h2>
+    <div className="bg-white h-full w-full flex justify-center items-center flex-col rounded-[1.5rem]">
+      <h2 className="text-[1.5rem] font-bold mb-6">{info.login.parrafo1}</h2>
 
       <form
         onSubmit={handlerSubmit}
-        noValidate // 🚀 Desactiva validación nativa del navegador
+        noValidate //  Desactiva validación nativa del navegador
         className="w-full max-w-sm flex flex-col gap-4"
       >
         {/* Email */}
-         <Campo  nombre="cedula" placeholder="Numero de cédula" tipo="number" errors={errors}
-         regis={register("cedula", {
-            required: {
-              value: true,
-              message: "El numero de cedula es obligatorio",
-            },
-            minLength: { value: 5, message: "Debe tener al menos 5 dígitos" },
-            maxLength: {
-              value: 10,
-              message: "Debe tener como máximo 10 dígitos",
-            },
-          })}/>
-        {/* <input
-          type="number" // 👈 importante: no usar "email"
+        <Campo
+          nombre="cedula"
           placeholder="Numero de cédula"
-          {...register("cedula", {
+          tipo="number"
+          errors={errors}
+          regis={register("cedula", {
             required: {
               value: true,
               message: "El numero de cedula es obligatorio",
@@ -162,36 +87,16 @@ function Login({puedoEntrar}: {puedoEntrar: (valor:boolean)=>void} ) { //nuevo p
             maxLength: {
               value: 10,
               message: "Debe tener como máximo 10 dígitos",
-            },
-
-            onChange: () => {
-              const cedula = getValues().cedula;
-              const texto = String(cedula).replaceAll("3", "0");
-              setValue("cedula", Number(texto));
             },
           })}
-          className="border border-gray-300 p-2 rounded-lg"
         />
-        {errors.cedula && (
-          <p className="text-red-500 text-sm">
-            {errors.cedula.message as string}
-          </p>
-        )} */}
-
-        {/* Contraseña */}
         <div className="  flex flex-col relative">
-          {/* <img
-              className=" pl-1 cursor-pointer absolute top-3 right-2"
-              onClick={toggleVisibilidad}
-              src={
-                mostrarClave
-                  ? closedeye
-                  : openedeye
-              }
-              alt=""
-            /> */}
-            <Campo nombre="clave" placeholder="Contraseña" tipo="password" errors={errors}
-          regis={register("clave", {
+          <Campo
+            nombre="clave"
+            placeholder="Contraseña"
+            tipo="password"
+            errors={errors}
+            regis={register("clave", {
               required: "La contraseña es obligatoria",
               minLength: {
                 value: 6,
@@ -211,38 +116,8 @@ function Login({puedoEntrar}: {puedoEntrar: (valor:boolean)=>void} ) { //nuevo p
                 if (/[<>]/.test(campo)) return "No puede contener < o >";
                 return true;
               },
-            })}/>
-          {/* <input
-            type={mostrarClave ? "text" : "password"}
-            placeholder="Contraseña"
-            {...register("password", {
-              required: "La contraseña es obligatoria",
-              minLength: {
-                value: 8,
-                message: "Debe tener al menos 8 caracteres",
-              },
-              maxLength: {
-                value: 20,
-                message: "No puede tener más de 20 caracteres",
-              },
-              validate: (campo) => {
-                if (!campo) return "La contraseña es obligatoria";
-                if (!/[a-z]/.test(campo)) return "Debe incluir una minúscula";
-                if (!/[A-Z]/.test(campo)) return "Debe incluir una mayúscula";
-                if (!/[0-9]/.test(campo)) return "Debe incluir un número";
-                if (!/[^0-9A-Za-z]/.test(campo))
-                  return "Debe incluir un carácter especial";
-                if (/[<>]/.test(campo)) return "No puede contener < o >";
-                return true;
-              },
             })}
-            className="border border-gray-300 p-2 rounded-lg w-full"
           />
-          {errors.password && (
-            <p className="text-red-500 text-sm flex justify-start w-full pt-3">
-              {errors.password.message as string}
-            </p>
-          )} */}
         </div>
 
         {/* Botón login */}
@@ -261,7 +136,6 @@ function Login({puedoEntrar}: {puedoEntrar: (valor:boolean)=>void} ) { //nuevo p
           {info.login.parrafo2}
         </Link>
       </form>
-      
     </div>
   );
 }

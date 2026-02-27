@@ -19,8 +19,6 @@ function Auth() {
   const viajarA = () => {
     if (location === "login" ) {
       navegarA("/auth/register");
-    // } else if (location === "register") {
-    //   navegarA("/login");
     } else {
       navegarA("/auth/login");
     }
@@ -33,8 +31,8 @@ function Auth() {
         background:`linear-gradient(${bgRot}deg, #0f2027, #203a43, #2c5364)`,
       }}
     >
-      <div className="bg-white w-[60%]  h-[95%] max-h-[85%] rounded-3xl flex justify-between flex-row">
-        <div className="bg-blue-900 h-full w-[50%] relative rounded-3xl flex flex-col justify-center items-center p-4 space-y-4 ">
+      <div className="bg-white w-[60%]  h-[95%] max-h-[90%] rounded-[1.5rem] flex justify-between flex-row">
+        <div className="bg-blue-900 h-full w-[50%] relative rounded-[1.5rem] flex flex-col justify-center items-center p-4 space-y-4 ">
           <strong className="text-white ">{info[location].message}</strong>
           <p className="text-white text-sm text-justify ">
             {info[location].description}
