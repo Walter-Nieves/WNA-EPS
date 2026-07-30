@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import authFetch from "../utils/AuthFetch";
 import ModalUsuarioEstado from "./ModalUsuarioEstado";
 import type { Usuario } from "../types";
+import { usePhoto } from "../Contexts/PhotoContext";
 
 interface Props {
   onClose: () => void;
@@ -11,6 +12,7 @@ interface Props {
 
 function EliminarUsuario({ onClose }: Props) {
   const navigate = useNavigate();
+  const { dispatchTriggerPacientes } = usePhoto();
 
   const [tipo, setTipo] = useState<"temporal" | "definitivo" | null>(null);
   const [cedula, setCedula] = useState<number | "">("");
@@ -57,6 +59,8 @@ function EliminarUsuario({ onClose }: Props) {
       { method: "DELETE" },
       navigate
     );
+
+    dispatchTriggerPacientes();
 
     onClose();
   };

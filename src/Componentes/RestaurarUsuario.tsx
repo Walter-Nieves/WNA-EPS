@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import authFetch from "../utils/AuthFetch";
 import ModalUsuarioEstado from "./ModalUsuarioEstado";
 import type { Usuario } from "../types";
+import { usePhoto } from "../Contexts/PhotoContext";
 
 interface Props {
   onClose: () => void;
@@ -11,6 +12,7 @@ interface Props {
 
 function RestaurarUsuario({ onClose }: Props) {
   const navigate = useNavigate();
+   const { dispatchTriggerPacientes } = usePhoto();
 
   const [cedula, setCedula] = useState<number | "">("");
   const [usuario, setUsuario] = useState<Usuario | null>(null);
@@ -46,6 +48,8 @@ function RestaurarUsuario({ onClose }: Props) {
       { method: "PATCH" },
       navigate
     );
+    
+     dispatchTriggerPacientes(); 
 
     onClose();
   };

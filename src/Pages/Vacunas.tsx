@@ -46,38 +46,8 @@ function Vacunas({ rol, usuarioLogueado ,refreshKey}: VacunasProps) {
   /* ============================================
      ✅ Cargar datos
   ============================================ */
-  // useEffect(() => {
-  //   const cargarDatos = async () => {
-  //     try {
-  //       const endpoint =
-  //         vista === "misVacunas"
-  //           ? "/api/vacunas/me"
-  //           : "/api/vacunas/pacientes-con-vacunas";
 
-  //       const resp = await authFetch(
-  //         import.meta.env.VITE_BACKEND + endpoint,
-  //         { credentials: "include" },
-  //         navigate,
-  //       );
-
-  //       if (!resp) return;
-
-  //       const data = await resp.json();
-
-  //       if (vista === "misVacunas") {
-  //         setVacunas(data);
-  //       } else {
-  //         setPacientes(data);
-  //       }
-  //     } catch (error) {
-  //       console.error("Error cargando datos:", error);
-  //     }
-  //   };
-
-  //   cargarDatos();
-  // }, [vista, navigate, refreshKey]);
-
-  const { triggerVacunador } = usePhoto()
+  const { triggerVacunador,triggerPacientes  } = usePhoto()
 
   useEffect(() => {
   const cargarDatos = async (): Promise<void> => {
@@ -130,7 +100,7 @@ function Vacunas({ rol, usuarioLogueado ,refreshKey}: VacunasProps) {
   };
 
   cargarDatos();
-}, [vista, navigate, refreshKey, triggerVacunador]);
+}, [vista, navigate, refreshKey, triggerVacunador,triggerPacientes]);
 
   return (
     <>
@@ -226,7 +196,7 @@ function Vacunas({ rol, usuarioLogueado ,refreshKey}: VacunasProps) {
             onClick={() => setMostrarModal(true)}
             className="absolute bottom-6 right-6 bg-blue-900 text-white p-4 rounded-full shadow-lg hover:bg-blue-800"
           >
-            <Plus size={28} />
+            <Plus size={14} />
           </button>
 
           {mostrarModal && (
