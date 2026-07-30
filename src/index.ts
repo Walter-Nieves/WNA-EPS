@@ -31,7 +31,23 @@ export let ColVacunas: Collection<Vacuna>
 export let colEnumVaccines: Collection<enumVaccine>
 
 const app = Express()
-app.use(cors({ origin: process.env.FRONT_DOMAIN, credentials: true }))// doble signo de pregunta operador ternario de typescript
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://walter-nieves.github.io'
+]
+
+app.use(
+  cors({
+    origin (origin, callback) {
+      if (!origin) return callback(null, true)
+      if (allowedOrigins.includes(origin)) { return callback(null, true) }
+      callback(new Error('Origen no permitido'))
+    },
+    credentials: true
+  })
+)
+// app.use(cors({ origin: process.env.FRONT_DOMAIN, credentials: true }))
+// doble signo de pregunta operador ternario de typescript
 // Permitir envío de cookies cors({ credentials: true })
 // Necesario si tu frontend y backend están en dominios diferentes y quieres enviar cookies.
 app.use(json())
