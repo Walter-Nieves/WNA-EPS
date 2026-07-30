@@ -148,6 +148,8 @@ function ModalAgregar({
         lugar: backendVacuna.lugar,
         nombreVacunador: usuarioLogueado.nombre,
         fotoVacunador: usuarioLogueado.foto,
+        agregadoPorRol: backendVacuna.agregadoPorRol,
+        agregadoPorId: backendVacuna.agregadoPorId,
         nombrePaciente:
           usuarioEncontrado != null
             ? `${usuarioEncontrado.nombre} ${usuarioEncontrado.apellido}`
