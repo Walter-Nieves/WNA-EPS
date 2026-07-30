@@ -39,7 +39,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin (origin, callback) {
-      if (origin == null) return callback(null, true)
+      if (origin == null || origin === '') return callback(null, true)
       if (allowedOrigins.includes(origin)) { return callback(null, true) }
       callback(new Error('Origen no permitido'))
     },
