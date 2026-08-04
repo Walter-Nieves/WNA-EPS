@@ -16,6 +16,8 @@ const JWT_REFRESH_EXPIRA_EN = process.env.JWT_REFRESH_EXPIRA_EN as StringValue
 const COOKIE_ACCESS_EXPIRA_EN: number = Number(process.env.COOKIE_ACCESS_EXPIRA_EN)
 const COOKIE_REFRESH_EXPIRA_EN: number = Number(process.env.COOKIE_REFRESH_EXPIRA_EN)
 
+const isInLocalHost = (process.env.FRONT_DOMAIN as string).includes('localhost')
+
 export async function login (req: Request, res: Response): Promise <Response> {
   try {
     const body = req.body
@@ -53,15 +55,15 @@ export async function login (req: Request, res: Response): Promise <Response> {
 
     // NUEVO: Configurar cookie HttpOnly
     res.cookie('accessToken', accessToken, {
-      httpOnly: true, // 🔒 No accesible por JS
-      secure: false,
-      sameSite: 'lax', // Permite navegación entre dominio frontend-backend
+      httpOnly: true,
+      secure: !isInLocalHost,
+      sameSite: isInLocalHost ? 'lax' : 'none',
       maxAge: COOKIE_ACCESS_EXPIRA_EN
     })
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: true, // 🔒 No accesible por JS
-      secure: false,
-      sameSite: 'lax', // Permite navegación entre dominio frontend-backend
+      httpOnly: true,
+      secure: !isInLocalHost,
+      sameSite: isInLocalHost ? 'lax' : 'none',
       maxAge: COOKIE_REFRESH_EXPIRA_EN
     })
 
@@ -93,9 +95,9 @@ export async function refresh (req: Request, res: Response): Promise <Response> 
     const newAccessToken = jwt.sign(newAccessPayload, SECRETO, { expiresIn: JWT_ACCESS_EXPIRA_EN })
     // NUEVO: Configurar cookie HttpOnly
     res.cookie('accessToken', newAccessToken, {
-      httpOnly: true, // 🔒 No accesible por JS
-      secure: false,
-      sameSite: 'lax', // Permite navegación entre dominio frontend-backend
+      httpOnly: true,
+      secure: !isInLocalHost,
+      sameSite: isInLocalHost ? 'lax' : 'none',
       maxAge: COOKIE_ACCESS_EXPIRA_EN
     })
     return res.json({ message: 'Token de acceso renovado' })
@@ -108,14 +110,14 @@ export async function logout (req: Request, res: Response): Promise<Response> {
   try {
     res.clearCookie('accessToken', {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: !isInLocalHost,
+      sameSite: isInLocalHost ? 'lax' : 'none',
       maxAge: 1
     })
     res.clearCookie('refreshToken', {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: !isInLocalHost,
+      sameSite: isInLocalHost ? 'lax' : 'none',
       maxAge: 1
     })
     return res.json({ message: 'Sesion cerrada correctamente' })
