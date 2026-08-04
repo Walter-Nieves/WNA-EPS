@@ -1,4 +1,9 @@
-import { Outlet, BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  Outlet,
+  BrowserRouter,
+  Routes,
+  Route,
+} from "react-router-dom";
 import { useAuth } from "./Contexts/AuthContexts";
 import ErrorAutho from "./Componentes/ErrorAutho";
 import Login from "./Componentes/Login";
@@ -6,10 +11,12 @@ import RegisterForm from "./Componentes/RegisterForm";
 import Auth from "./Pages/Authori";
 import Bienvenida from "./Pages/Bienvenida";
 import NotFound from "./Pages/NotFound";
+import AuthProvider from "./Contexts/AuthContexts";
 import Home from "./Pages/Home";
 
 function ProtectedRoutes() {
   const { logged, usuario, cargando } = useAuth();
+
 
   //  Mientras se valida la sesión
   if (cargando) {
@@ -38,22 +45,24 @@ function ProtectedRoutes() {
 
 function App() {
   return (
-    <BrowserRouter basename="/WNA-EPS">
-      <Routes>
-        <Route path="/" element={<Bienvenida />} />
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<Bienvenida />} />
 
-        <Route path="/auth" element={<Auth />}>
-          <Route index element={<Login />} />
-          <Route path="login" element={<Login />} />
-          <Route path="register" element={<RegisterForm />} />
-        </Route>
+          <Route path="/auth" element={<Auth />}>
+            <Route index element={<Login />} />
+            <Route path="login" element={<Login />} />
+            <Route path="register" element={<RegisterForm />} />
+          </Route>
 
-        <Route element={<ProtectedRoutes />}>
-          <Route path="/home" element={<Home />} />
-        </Route>
+          <Route element={<ProtectedRoutes />}>
+            <Route path="/home" element={<Home />} />
+          </Route>
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
