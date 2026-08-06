@@ -1,8 +1,8 @@
 import {
   Outlet,
-  BrowserRouter,
   Routes,
   Route,
+  BrowserRouter,
 } from "react-router-dom";
 import { useAuth } from "./Contexts/AuthContexts";
 import ErrorAutho from "./Componentes/ErrorAutho";
@@ -45,7 +45,7 @@ function ProtectedRoutes() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/WNA-EPS">
       <AuthProvider>
         <Routes>
           <Route path="/" element={<Bienvenida />} />
