@@ -8,6 +8,7 @@ export function authVerify (necesitoLogin: boolean): middleware <Response | unde
       // extraemos las cookies del request
       const { accessToken } = req.cookies
       // verificamos el token
+      console.log(necesitoLogin, accessToken)
       if (accessToken == null) {
         if (necesitoLogin) resError(401, 'No hay token de autenticación proporcionado')
         else {

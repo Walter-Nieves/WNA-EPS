@@ -56,7 +56,7 @@ app.use(json())
 app.use(cookieParser()) //  NUEVO: permite leer cookies
 app.use(morgan('dev')) // morgan como middleware de logging en el servidor Express
 
-app.use('/api/usuarios', authVerify(true), userRoutes)
+app.use('/api/usuarios', userRoutes)
 app.use('/api/vacunas', authVerify(true), vaccineRoutes)
 app.use('/api/enumvaccines', authVerify(true), enumVaccineRoutes)
 app.use('/auth', authRoute)
